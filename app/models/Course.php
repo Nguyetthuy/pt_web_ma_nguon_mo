@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../helpers/Database.php';
+/*require_once __DIR__ . '/../helpers/Database.php';
 
 class course {
     public static function all()
@@ -17,5 +17,5 @@ class course {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    
-}
+
+}*/
