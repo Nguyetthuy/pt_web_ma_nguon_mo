@@ -23,11 +23,7 @@ $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
         <li class="nav-item"><a class="nav-link" href="<?php echo $base; ?>/index.php?route=home">Trang chủ</a></li>
         <li class="nav-item"><a class="nav-link" href="<?php echo $base; ?>/index.php?route=courses">Khóa học</a></li>
         <li class="nav-item"><a class="nav-link" href="<?php echo $base; ?>/index.php?route=admin">Liên hệ</a></li>
-        <li class="nav-item">
-            <a class="btn btn-warning btn-sm ms-lg-2 mb-2 mb-lg-0" href="<?php echo $base; ?>/index.php?route=register">
-               <i class="fas fa-user-plus"></i> Đăng ký
-            </a>
-        </li>
+
         <li class="nav-item">
             <a class="btn btn-light btn-sm ms-lg-2" href="<?php echo $base; ?>/index.php?route=login">
                <i class="fas fa-sign-in-alt"></i> Đăng nhập

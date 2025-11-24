@@ -77,7 +77,7 @@ class UserController {
     // Xác thực user bằng email + password
     public function authenticate(string $email, string $password)
     {
-        $user = $this->findUserByEmail($email);
+        $user = $this->userModel->findUserByEmail($email);
         if (!$user) {
             return false;
         }
@@ -130,5 +130,127 @@ class UserController {
             $data['errors'][] = 'Email hoặc mật khẩu không đúng.';
             view('user/login', $data);
         }
+    }
+
+    // Xử lý đăng ký/đăng nhập bằng Google
+    public function handleGoogleAuth() {
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $credential = $input['credential'] ?? '';
+
+        if (empty($credential)) {
+            echo json_encode(['success' => false, 'message' => 'Không nhận được thông tin từ Google.']);
+            exit;
+        }
+
+        // Verify Google token và lấy thông tin user
+        $googleUser = $this->verifyGoogleToken($credential);
+        
+        if (!$googleUser) {
+            echo json_encode(['success' => false, 'message' => 'Không thể xác thực với Google.']);
+            exit;
+        }
+
+        // Kiểm tra xem user đã tồn tại chưa
+        $existingUser = $this->userModel->findUserByEmail($googleUser['email']);
+        
+        if ($existingUser) {
+            // User đã tồn tại, đăng nhập
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            unset($existingUser['password']);
+            $_SESSION['user'] = $existingUser;
+            $_SESSION['success_message'] = 'Đăng nhập thành công với Google.';
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Đăng nhập thành công.',
+                'redirect' => $_SERVER['SCRIPT_NAME'] . '?route=home'
+            ]);
+        } else {
+            // User chưa tồn tại, đăng ký mới
+            $registerData = [
+                'user_name' => $googleUser['name'],
+                'email' => $googleUser['email'],
+                'phone' => '',
+                'password' => '', // Không cần password cho Google user
+                'avatar' => $googleUser['picture'] ?? null,
+                'role' => 'student',
+                'google_id' => $googleUser['sub'] ?? null
+            ];
+
+            $result = $this->userModel->registerWithGoogle($registerData);
+            
+            if ($result === true) {
+                // Đăng nhập ngay sau khi đăng ký
+                $newUser = $this->userModel->findUserByEmail($googleUser['email']);
+                if ($newUser) {
+                    if (session_status() === PHP_SESSION_NONE) session_start();
+                    unset($newUser['password']);
+                    $_SESSION['user'] = $newUser;
+                    $_SESSION['success_message'] = 'Đăng ký thành công với Google!';
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => 'Đăng ký thành công.',
+                        'redirect' => $_SERVER['SCRIPT_NAME'] . '?route=home'
+                    ]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Đăng ký thành công nhưng không thể đăng nhập.']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => is_string($result) ? $result : 'Đã xảy ra lỗi khi đăng ký.']);
+            }
+        }
+        exit;
+    }
+
+    // Verify Google ID token
+    private function verifyGoogleToken($credential) {
+        // Sử dụng Google API để verify token
+        // Cần cài đặt: composer require google/apiclient
+        // Hoặc sử dụng cURL để gọi Google API
+        
+        $url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($credential);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode !== 200) {
+            error_log('Google token verification failed: HTTP ' . $httpCode);
+            return false;
+        }
+        
+        $data = json_decode($response, true);
+        
+        if (!$data || isset($data['error'])) {
+            error_log('Google token verification error: ' . ($data['error'] ?? 'Unknown'));
+            return false;
+        }
+        
+        // Verify audience (client ID) - Uncomment và thay YOUR_GOOGLE_CLIENT_ID để bảo mật hơn
+        // $config = require __DIR__ . '/../../config/config.php';
+        // $expectedClientId = $config['google_client_id'] ?? '';
+        // if ($data['aud'] !== $expectedClientId) {
+        //     error_log('Google token audience mismatch');
+        //     return false;
+        // }
+        
+        return [
+            'sub' => $data['sub'] ?? '',
+            'email' => $data['email'] ?? '',
+            'name' => $data['name'] ?? '',
+            'picture' => $data['picture'] ?? null,
+            'email_verified' => $data['email_verified'] ?? false
+        ];
     }
 }

@@ -84,4 +84,42 @@ class User {
 
         return false;
     }
+
+    // Đăng ký user với Google (không cần password)
+    public function registerWithGoogle($data) {
+        try {
+            if ($this->findUserByEmail($data['email'])) {
+                return 'Email này đã được sử dụng.';
+            }
+
+            // Tạo password ngẫu nhiên hoặc để null (tùy database cho phép)
+            // Vì schema yêu cầu password NOT NULL, ta sẽ hash một chuỗi ngẫu nhiên
+            $randomPassword = bin2hex(random_bytes(32));
+            $hashed = password_hash($randomPassword, PASSWORD_DEFAULT);
+
+            $sql = "INSERT INTO `user` (user_name, email, phone, password, role, avatar)
+                    VALUES (:user_name, :email, :phone, :password, :role, :avatar)";
+
+            $params = [
+                ':user_name' => $data['user_name'],
+                ':email'     => $data['email'],
+                ':phone'     => $data['phone'] ?: null,
+                ':password'  => $hashed, // Lưu password ngẫu nhiên (user sẽ không dùng password này)
+                ':role'      => $data['role'] ?? 'student',
+                ':avatar'    => $data['avatar'] ?? null
+            ];
+
+            $ok = $this->db->execute($sql, $params);
+            if ($ok) {
+                return true;
+            }
+            return 'Không thể ghi vào cơ sở dữ liệu.';
+        } catch (PDOException $e) {
+            error_log('User::registerWithGoogle PDOException: ' . $e->getMessage());
+            return $e->getMessage();
+        } catch (Exception $e) {
+            error_log('User::registerWithGoogle Exception: ' . $e->getMessage());
+            return $e->getMessage();
+        }
+    }
 }
