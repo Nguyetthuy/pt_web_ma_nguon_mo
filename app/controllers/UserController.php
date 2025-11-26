@@ -95,7 +95,7 @@ class UserController {
         $data += ['errors' => [], 'old' => []];
         view('user/login', $data);
     }
-
+    // Xử lý đăng nhập
     public function login()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -124,7 +124,8 @@ class UserController {
             if (session_status() === PHP_SESSION_NONE) session_start();
             $_SESSION['user'] = $user;
             $_SESSION['success_message'] = 'Đăng nhập thành công.';
-            header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?route=home');
+            $redirectRoute = ($user['role'] ?? 'student') === 'admin' ? 'admin' : 'home';
+            header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?route=' . $redirectRoute);
             exit;
         } else {
             $data['errors'][] = 'Email hoặc mật khẩu không đúng.';
@@ -166,10 +167,13 @@ class UserController {
             unset($existingUser['password']);
             $_SESSION['user'] = $existingUser;
             $_SESSION['success_message'] = 'Đăng nhập thành công với Google.';
+            $redirect = ($_SESSION['email']['role'] ?? 'student') === 'admin'
+                ? $_SERVER['SCRIPT_NAME'] . '?route=admin'
+                : $_SERVER['SCRIPT_NAME'] . '?route=home';
             echo json_encode([
                 'success' => true, 
                 'message' => 'Đăng nhập thành công.',
-                'redirect' => $_SERVER['SCRIPT_NAME'] . '?route=home'
+                'redirect' => $redirect
             ]);
         } else {
             // User chưa tồn tại, đăng ký mới
