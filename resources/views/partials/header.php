@@ -23,6 +23,7 @@ $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
       <ul class="navbar-nav ms-auto">
         <li class="nav-item"><a class="nav-link" href="<?php echo $base; ?>/index.php?route=home">Trang chủ</a></li>
         <li class="nav-item"><a class="nav-link" href="<?php echo $base; ?>/index.php?route=courses">Khóa học</a></li>
+        <li class="nav-item"><a class="nav-link" href="<?php echo $base; ?>/index.php?route=documents">Tài liệu</a></li>
         <li class="nav-item"><a class="nav-link" href="<?php echo $base; ?>/index.php?route=admin">Liên hệ</a></li>
 
         <?php if (isset($_SESSION['user'])): ?>

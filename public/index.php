@@ -95,6 +95,36 @@ switch ($route) {
         $controller->logout();
         break;
 
+    // ========== DOCUMENTS ==========
+    case 'documents':
+        require_once __DIR__ . '/../app/controllers/DocumentController.php';
+        $controller = new DocumentController();
+        $controller->index();
+        break;
+
+    case 'documents_create':
+        require_once __DIR__ . '/../app/controllers/DocumentController.php';
+        $controller = new DocumentController();
+        $controller->create();
+        break;
+
+    case 'documents_store':
+        require_once __DIR__ . '/../app/controllers/DocumentController.php';
+        $controller = new DocumentController();
+        $controller->store();
+        break;
+
+    case 'documents_download':
+        require_once __DIR__ . '/../app/controllers/DocumentController.php';
+        $controller = new DocumentController();
+        $controller->download();
+        break;
+
+    case 'documents_delete':
+        require_once __DIR__ . '/../app/controllers/DocumentController.php';
+        $controller = new DocumentController();
+        $controller->delete();
+        break;
 
     // ========== 404 ==========
     default:
