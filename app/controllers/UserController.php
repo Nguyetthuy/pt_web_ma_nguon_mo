@@ -253,4 +253,159 @@ class UserController {
             'email_verified' => $data['email_verified'] ?? false
         ];
     }
+
+    // Hiển thị trang thông tin cá nhân
+    public function showProfile() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Kiểm tra đã đăng nhập chưa
+        if (!isset($_SESSION['user'])) {
+            $_SESSION['error_message'] = 'Vui lòng đăng nhập để xem thông tin cá nhân.';
+            header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?route=login');
+            exit;
+        }
+
+        // Lấy thông tin user mới nhất từ database
+        $user = $this->userModel->findUserByEmail($_SESSION['user']['email']);
+        if ($user) {
+            unset($user['password']);
+            // Đảm bảo user_id có trong session
+            if (isset($user['user_id'])) {
+                $_SESSION['user']['user_id'] = $user['user_id'];
+            }
+            $data = ['user' => $user];
+        } else {
+            $data = ['user' => $_SESSION['user']];
+        }
+
+        view('user/profile', $data);
+    }
+
+    // Đăng xuất
+    public function logout() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Xóa session
+        unset($_SESSION['user']);
+        session_destroy();
+
+        $_SESSION['success_message'] = 'Đăng xuất thành công.';
+        header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?route=home');
+        exit;
+    }
+
+    // Cập nhật avatar
+    public function updateAvatar() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Kiểm tra đã đăng nhập chưa
+        if (!isset($_SESSION['user'])) {
+            $_SESSION['error_message'] = 'Vui lòng đăng nhập để cập nhật avatar.';
+            header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?route=login');
+            exit;
+        }
+
+        // Kiểm tra method POST và có file upload
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['avatar'])) {
+            $_SESSION['error_message'] = 'Không nhận được file upload.';
+            header('Location: ' . $_SERVER['SCRIPT_NAME'] . '?route=profile');
+            exit;
+        }
+
+        $file = $_FILES['avatar'];
+        $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+
+        // 1. Kiểm tra lỗi file upload
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['error_message'] = 'Lỗi tải file lên. Mã lỗi: ' . $file['error'];
+            header('Location: ' . $base . '/index.php?route=profile');
+            exit;
+        }
+
+        // 2. Kiểm tra kích thước và loại file
+        $max_size = 5 * 1024 * 1024; // 5 MB
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
+        
+        $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        
+        if ($file['size'] > $max_size) {
+            $_SESSION['error_message'] = 'Kích thước file quá lớn (tối đa 5MB).';
+            header('Location: ' . $base . '/index.php?route=profile');
+            exit;
+        }
+        
+        if (!in_array($file['type'], $allowed_types) || !in_array($file_extension, $allowed_extensions)) {
+            $_SESSION['error_message'] = 'Chỉ chấp nhận định dạng JPG, PNG hoặc GIF.';
+            header('Location: ' . $base . '/index.php?route=profile');
+            exit;
+        }
+
+        // 3. Chuẩn bị đường dẫn và tên file mới
+        $upload_dir = __DIR__ . '/../../public/uploads/avatars/';
+        
+        // Tạo thư mục nếu chưa tồn tại
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+
+        // Lấy user_id từ session, nếu không có thì lấy từ database
+        $user_id = $_SESSION['user']['user_id'] ?? null;
+        if (!$user_id) {
+            // Lấy user từ database để có user_id
+            $user = $this->userModel->findUserByEmail($_SESSION['user']['email']);
+            if ($user && isset($user['user_id'])) {
+                $user_id = $user['user_id'];
+                // Cập nhật session với user_id
+                $_SESSION['user']['user_id'] = $user_id;
+            } else {
+                $_SESSION['error_message'] = 'Không thể xác định user_id.';
+                header('Location: ' . $base . '/index.php?route=profile');
+                exit;
+            }
+        }
+        
+        // Tạo tên file bằng user_id
+        $new_file_name = $user_id . '.' . $file_extension;
+        $destination = $upload_dir . $new_file_name;
+        
+        // Xóa file avatar cũ nếu tồn tại (để tránh tích lũy file)
+        $old_files = glob($upload_dir . $user_id . '.*');
+        foreach ($old_files as $old_file) {
+            if (is_file($old_file)) {
+                @unlink($old_file);
+            }
+        }
+        
+        // 4. Di chuyển file vào thư mục
+        if (move_uploaded_file($file['tmp_name'], $destination)) {
+            // 5. Cập nhật đường dẫn vào Database
+            $public_path = $base . '/uploads/avatars/' . $new_file_name;
+            
+            // Cập nhật database
+            $result = $this->userModel->updateAvatar($_SESSION['user']['email'], $public_path);
+            
+            if ($result) {
+                // Cập nhật Session để hiển thị ngay
+                $_SESSION['user']['avatar'] = $public_path;
+                $_SESSION['success_message'] = 'Ảnh đại diện đã được cập nhật thành công!';
+            } else {
+                // Xóa file nếu không cập nhật được DB
+                @unlink($destination);
+                $_SESSION['error_message'] = 'Không thể cập nhật database.';
+            }
+        } else {
+            $_SESSION['error_message'] = 'Không thể lưu file. Vui lòng kiểm tra quyền thư mục.';
+        }
+        
+        // Chuyển hướng về trang profile
+        header('Location: ' . $base . '/index.php?route=profile');
+        exit;
+    }
 }

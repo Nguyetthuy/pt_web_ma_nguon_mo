@@ -122,4 +122,24 @@ class User {
             return $e->getMessage();
         }
     }
+
+    // Cập nhật avatar của user
+    public function updateAvatar($email, $avatarPath) {
+        try {
+            $sql = "UPDATE `user` SET avatar = :avatar WHERE email = :email";
+            $params = [
+                ':avatar' => $avatarPath,
+                ':email' => $email
+            ];
+
+            $ok = $this->db->execute($sql, $params);
+            return $ok;
+        } catch (PDOException $e) {
+            error_log('User::updateAvatar PDOException: ' . $e->getMessage());
+            return false;
+        } catch (Exception $e) {
+            error_log('User::updateAvatar Exception: ' . $e->getMessage());
+            return false;
+        }
+    }
 }

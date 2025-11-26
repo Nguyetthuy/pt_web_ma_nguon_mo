@@ -75,6 +75,26 @@ switch ($route) {
         $controller->handleGoogleAuth();
         break;
 
+    // ========== PROFILE ==========
+    case 'profile':
+        require_once __DIR__ . '/../app/controllers/UserController.php';
+        $controller = new UserController();
+        
+        // Kiểm tra nếu có action update_avatar
+        if (isset($_GET['action']) && $_GET['action'] === 'update_avatar' && $method === 'POST') {
+            $controller->updateAvatar();
+        } else {
+            $controller->showProfile();
+        }
+        break;
+
+    // ========== LOGOUT ==========
+    case 'logout':
+        require_once __DIR__ . '/../app/controllers/UserController.php';
+        $controller = new UserController();
+        $controller->logout();
+        break;
+
 
     // ========== 404 ==========
     default:
