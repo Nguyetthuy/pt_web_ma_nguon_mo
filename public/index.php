@@ -95,6 +95,12 @@ switch ($route) {
         $controller->logout();
         break;
 
+    // ========== ADMIN DASHBOARD ==========
+    case 'admin':
+        require_once __DIR__ . '/../app/controllers/AdminController.php';
+        (new AdminController())->dashboard();
+        break;
+
 
     // ========== 404 ==========
     default:
