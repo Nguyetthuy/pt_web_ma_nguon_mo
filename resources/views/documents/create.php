@@ -61,7 +61,7 @@
             <div class="card-body">
                 <ol class="mb-0">
                     <li>Nhập tiêu đề rõ ràng, dễ hiểu cho tài liệu</li>
-                    <li>Thêm mô tả chi tiết về nội dung tài liệu (tùy chọn)</li>
+                    <li>Thêm mô tả chi tiết về nội dung tài liệu (Tùy chọn)</li>
                     <li>Chọn file từ máy tính của bạn</li>
                     <li>Nhấn "Upload tài liệu" để hoàn tất</li>
                 </ol>
